@@ -1,11 +1,19 @@
 export const config = {
   api: {
-    bodyParser: true, // 確保 req.body 被解析為 JSON
+    bodyParser: false, // ❌ 停用自動解析
   }
 };
 
-
 const fetch = require("node-fetch");
+
+function bufferToString(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", chunk => (data += chunk));
+    req.on("end", () => resolve(data));
+    req.on("error", err => reject(err));
+  });
+}
 
 async function callGPT(message) {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -35,12 +43,15 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   try {
-    // 🔐 防止 LINE 驗證空請求導致報錯
-    if (!req.body || Object.keys(req.body).length === 0 || !req.body.message || !req.body.userId) {
-      return res.status(200).json({ message: "LINE webhook verified (safe fallback)" });
+    const raw = await bufferToString(req);
+    const parsed = raw ? JSON.parse(raw) : {};
+
+    const { userId, message } = parsed;
+
+    if (!userId || !message) {
+      return res.status(200).json({ message: "LINE webhook verified (parsed fallback)" });
     }
 
-    const { userId, message } = req.body;
     const gpt = await callGPT(message);
     const reply = gpt.choices[0].message.content;
     const usage = gpt.usage || { total_tokens: 0 };
@@ -66,6 +77,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ reply });
   } catch (err) {
     console.error("GPT error:", err);
-    res.status(200).json({ error: err.message }); // 保證回 200 給 LINE
+    res.status(200).json({ error: err.message }); // 仍回 200 給 LINE
   }
 };
