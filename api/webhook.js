@@ -29,6 +29,11 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   try {
+    // 🔐 防止 LINE 驗證空請求導致報錯
+    if (!req.body || Object.keys(req.body).length === 0 || !req.body.message || !req.body.userId) {
+      return res.status(200).json({ message: "LINE webhook verified (safe fallback)" });
+    }
+
     const { userId, message } = req.body;
     const gpt = await callGPT(message);
     const reply = gpt.choices[0].message.content;
@@ -55,6 +60,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ reply });
   } catch (err) {
     console.error("GPT error:", err);
-    res.status(200).json({ error: err.message }); // LINE 不接受 500，必須回 200
+    res.status(200).json({ error: err.message }); // 保證回 200 給 LINE
   }
 };
