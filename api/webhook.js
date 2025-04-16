@@ -1,6 +1,7 @@
+
 export const config = {
   api: {
-    bodyParser: false, // ❌ 停用自動解析
+    bodyParser: false,
   }
 };
 
@@ -33,6 +34,10 @@ async function callGPT(message) {
   });
 
   if (!res.ok) {
+    if (res.status === 429) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return await callGPT(message); // retry once
+    }
     throw new Error(`OpenAI Error ${res.status}: ${await res.text()}`);
   }
 
@@ -42,10 +47,16 @@ async function callGPT(message) {
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+  let parsed = {};
   try {
     const raw = await bufferToString(req);
-    const parsed = raw ? JSON.parse(raw) : {};
+    parsed = raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.warn("JSON parse error:", err);
+    return res.status(200).json({ message: "LINE webhook verified (invalid JSON fallback)" });
+  }
 
+  try {
     const { userId, message } = parsed;
 
     if (!userId || !message) {
@@ -77,6 +88,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ reply });
   } catch (err) {
     console.error("GPT error:", err);
-    res.status(200).json({ error: err.message }); // 仍回 200 給 LINE
+    res.status(200).json({ error: err.message }); // 保證回 200 給 LINE
   }
 };
