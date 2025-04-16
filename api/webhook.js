@@ -1,3 +1,9 @@
+export const config = {
+  api: {
+    bodyParser: true, // 確保 req.body 被解析為 JSON
+  }
+};
+
 
 const fetch = require("node-fetch");
 
