@@ -1,0 +1,12 @@
+{
+  "name": "arzs-mainbot-webhook",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "api/webhook.js",
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.1",
+    "openai": "^4.25.0",
+    "googleapis": "^131.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}

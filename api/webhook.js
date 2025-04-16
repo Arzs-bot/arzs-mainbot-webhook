@@ -1,6 +1,6 @@
 import { middleware } from '@line/bot-sdk';
-import { handleEvent } from '../utils/gptHandler';
-import { writeToSheet } from '../utils/sheetsHandler';
+import { handleEvent } from '../utils/gptHandler.js';
+import { writeToSheet } from '../utils/sheetsHandler.js';
 
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,

@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { getOAuth2Client } from './sheetsOAuth';
+import { getOAuth2Client } from './sheetsOAuth.js';
 
 export async function writeToSheet(event, reply) {
   const auth = await getOAuth2Client();
