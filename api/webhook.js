@@ -1,7 +1,7 @@
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false
   }
 };
 
@@ -36,7 +36,7 @@ async function callGPT(message) {
   if (!res.ok) {
     if (res.status === 429) {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      return await callGPT(message); // retry once
+      return await callGPT(message);
     }
     throw new Error(`OpenAI Error ${res.status}: ${await res.text()}`);
   }
@@ -50,17 +50,29 @@ module.exports = async function handler(req, res) {
   let parsed = {};
   try {
     const raw = await bufferToString(req);
-    parsed = raw ? JSON.parse(raw) : {};
+
+    if (!raw || raw.trim() === "") {
+      console.log("📥 LINE webhook received empty POST");
+      return res.status(200).json({ message: "LINE webhook verified (empty raw body)" });
+    }
+
+    if (req.headers["content-type"] !== "application/json") {
+      console.log("📥 LINE webhook content-type not JSON:", req.headers["content-type"]);
+      return res.status(200).json({ message: "LINE webhook verified (non-JSON content-type)" });
+    }
+
+    parsed = JSON.parse(raw);
   } catch (err) {
-    console.warn("JSON parse error:", err);
-    return res.status(200).json({ message: "LINE webhook verified (invalid JSON fallback)" });
+    console.warn("⚠️ JSON parsing failed, fallback:", err);
+    return res.status(200).json({ message: "LINE webhook verified (malformed JSON fallback)" });
   }
 
   try {
     const { userId, message } = parsed;
 
     if (!userId || !message) {
-      return res.status(200).json({ message: "LINE webhook verified (parsed fallback)" });
+      console.log("📥 LINE webhook verified (missing fields fallback)");
+      return res.status(200).json({ message: "LINE webhook verified (missing userId/message)" });
     }
 
     const gpt = await callGPT(message);
@@ -87,7 +99,7 @@ module.exports = async function handler(req, res) {
 
     res.status(200).json({ reply });
   } catch (err) {
-    console.error("GPT error:", err);
-    res.status(200).json({ error: err.message }); // 保證回 200 給 LINE
+    console.error("❌ GPT error:", err);
+    res.status(200).json({ error: "internal error, but LINE webhook acknowledged" });
   }
 };
