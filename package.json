@@ -1,7 +1,6 @@
 {
   "name": "arzs-mainbot-webhook",
   "version": "1.0.0",
-  "type": "module",
   "main": "api/webhook.js",
   "dependencies": {
     "@line/bot-sdk": "^7.5.1",
